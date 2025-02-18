@@ -1,6 +1,8 @@
 import mysql.connector
 from mysql.connector import Error
 import re
+import csv
+
 
 # Function to create a connection to MySQL
 def create_connection():
@@ -72,6 +74,17 @@ def setup_database():
             )
             ''')
             print("'orders' table created successfully!")
+            
+            # Create Users Table
+            cursor.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+                user_id INT AUTO_INCREMENT PRIMARY KEY,
+                username VARCHAR(100) NOT NULL UNIQUE,
+                password VARCHAR(100) NOT NULL
+            )
+            ''')
+            
+            print("'users' table created successfully!")
 
         except Error as e:
             print(f"Error creating database or tables: {e}")
@@ -401,11 +414,66 @@ def delete_order():
         conn.commit()
         print("Order deleted successfully!")
         conn.close()    
-        
-        
+    
+    
+    
+# Export Orders to CSV
+def export_orders_to_csv():
+    conn = create_connection()
+    if conn:
+        cursor = conn.cursor()
+        try:
+            cursor.execute('SELECT * FROM orders')
+            orders = cursor.fetchall()
+            if orders:
+                with open('orders.csv', 'w', newline='') as file:
+                    writer = csv.writer(file)
+                    writer.writerow(['Order ID', 'Customer ID', 'Item ID', 'Quantity', 'Total Price', 'Order Date'])
+                    writer.writerows(orders)
+                print("Orders exported to 'orders.csv' successfully!")
+            else:
+                print("No orders to export.")
+        except Error as e:
+            print(f"Error exporting orders: {e}")
+        finally:
+            conn.close()
+   
+ 
+ # Login Function
+def login():
+    print("===-==-=-=-=-=================")
+    username = input("Enter username: ") #admim
+    password = input("Enter password: ") #admin
+    conn = create_connection()
+    if conn:
+        cursor = conn.cursor()
+        try:
+            cursor.execute('SELECT * FROM users WHERE username = %s AND password = %s', (username, password))
+            user = cursor.fetchone()
+            if user:
+                print("Login successful!")
+                return True
+            else:
+                print("Invalid username or password.")
+                return False
+        except Error as e:
+            print(f"Error during login: {e}")
+        finally:
+            conn.close()
+    return False
+ 
+ 
+ 
+ 
+
 def main():
     
+    
+    #setup_database()
+    # Rest of the main function
     setup_database()
+    if not login():
+        return  # Exit if login fails
 
     while True:
         print("\n=== Online Food Ordering System ===")
@@ -420,8 +488,9 @@ def main():
         print("9. Delete Menu Item")
         print("10. Delete Customer")
         print("11. Delete Order")
-        print("12. Update Order")  # Added update order option
-        print("13. Exit")
+        print("12. Update Order") # Added update order option
+        print("13. Export Data Orders")      
+        print("14. Exit")
         
         choice = input("Enter your choice: ")
 
@@ -450,6 +519,8 @@ def main():
         elif choice == '12':
             update_order()  # Call update order function
         elif choice == '13':
+            export_orders_to_csv()
+        elif choice == '14':
             print("Exiting...")
             break
         else:
